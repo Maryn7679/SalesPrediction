@@ -1,4 +1,4 @@
 setup:
-	uv sync --group lint
+	uv sync
 lint:
-	uv run ruff check .
+	uv run ruff check
