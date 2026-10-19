@@ -1,7 +1,9 @@
 - 1 Overview. 
 
-A system which predicts the sales revenue of various grocery products based on 
-previous sales. New sales data is added daily and the predictions are adjusted accordingly.
+An ML system which predicts the sales revenue of various grocery products based on 
+previous sales for the next week. 
+New sales data is added daily and the model is continuously evaluated on its performance and
+improved over time.
 
 - 2 Motivation. 
 
@@ -37,7 +39,8 @@ of significant error.
 New predictions outputed weekly.
 
 Model is assumed to be local to the company, so latency is not that important. 
-At least 1000 ms p95 is prefered.
+At least 1000 ms p95 is prefered. Throughput for model predictions should be 
+\> 1/10s. 
 
 Availability should be 100% at the start of the week for inference, unimportant for the rest of the week.
 Predictions should be always available through third-party databases.
@@ -84,6 +87,7 @@ as output.
 
 Candidate: Forecasting model combining several datasources (orders, order items, item profit
 margin, etc.) producing these outputs for each day:
+
 1. Orders total revenue
 
 Useful for estimating bussiness success
@@ -111,46 +115,74 @@ if it should be trained/replaced/ignored.
 
 - 6.2 Infra. 
 
-The local stack you will run and, per component, the managed cloud service you would use
-instead. Use the component names and the cloud columns of the reference table in Appendix 3;
-naming them is required, running on them is not.
+Local stack and online alternatives noted in image 3 of 6.1.
+
+Model is assumed to be local only because it's expected to be lightweight and internal
+to the company.
 
 - 6.3 Performance. 
 
-Throughput and latency budgets, and the batch-versus-online decision with a
-reason.
+Model is assumed to be local to the company, so latency is not that important. 
+At least 1000 ms p95 is prefered. Throughput for model predictions should be 
+\> 1/10s. 
+
+Data is injested in batches even though stream is available due to low frequency of both
+new datapoints and model outputs. A stream is unnecessary.
 
 - 6.4 Security and 6.5 Data privacy. 
 
-Where secrets live, who may call the service, what personal data
-the dataset contains and how long you keep it. Short, but not empty.
+Service assumed internal to the company and thus its data privacy conduct
+follows company guidelines for the rest of its data.
 
 - 6.6 Monitoring and alarms. 
 
-What you will log, which metrics you will compute, which threshold will
-fire, and who receives the alert. First draft; Lab 4 makes it real.
+Model predictions saved in separate database. Logs contain basic run info and 
+prediction drift/quality alerts. Alert logs are viewed by ML engineers, who decide
+if it should be trained/replaced/ignored.
 
-- 6.7 Cost. 
+- 6.7 Cost.
 
-An estimated monthly cost of the cloud column, even though you will run locally. Use the
-providers' calculators and state your assumptions.
+Azure SQL Database: $122.50 Estimated monthly cost
+
+Amazon Pipelines:
+
+![](../pipelines.png)
+
+Amazon Fea. St.:
+
+![](../feast.png)
+
+Amazon MLflow:
+
+![](../mlflow.png)
+
+Assumptions stated in the images.
 
 - 6.8 Integration points. 
 
-The upstream owner of the data, the downstream consumer of the
-predictions, and the contract between you and each.
+Data obtained from company databases, predictions sent to analytics department.
 
 - 6.9 Risks and uncertainties. 
 
-Named risks, one mitigation each.
+Main risk is that the system deletes/changes/corrupts data in the databases it has access to.
+Should be managed with proper access rights.
+
+Risks from incorrect predictions are low because the system makes no decisions.
 
 - 7.1 Alternatives. 
 
-At least two choices you rejected (a framing, a tool, a data source, an architecture)
-with pros, cons and the reason.
+Rejected using the model to inform decisions directly as it would be too risky and 
+difficult/time-consuming to train for.
+
+Rejected several data sources due to not having precise-enough timestamp data, not including
+product price or not providing any natural language features.
 
 - 7.2 and 7.3. Placeholders; Lab 2 and Lab 4 fill them.
 
 - 7.4 Milestones. 
 
-One sentence per later lab on what it will add to this system.
+1. Use case and system design.
+2. Data pipelines, versioning, baseline and MLflow.
+3. LLM baseline and retrieval.
+4. Serving on Minikube, monitoring and drift.
+5. Agentic extension.
