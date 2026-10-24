@@ -1,0 +1,4 @@
+[core]
+    remote = data_source
+['remote "data_source"']
+    url = C:\Marynne\XD\MLOps_Data\Remote_data
