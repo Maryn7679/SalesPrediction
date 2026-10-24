@@ -109,9 +109,9 @@ if it should be trained/replaced/ignored.
 
 - 6.1 High-level design. 
 
-![](../scheme1.png)
-![](../scheme2.png)
-![](../scheme3.png)
+![](../Images/scheme1.png)
+![](../Images/scheme2.png)
+![](../Images/scheme3.png)
 
 - 6.2 Infra. 
 
@@ -146,15 +146,15 @@ Azure SQL Database: $122.50 Estimated monthly cost
 
 Amazon Pipelines:
 
-![](../pipelines.png)
+![](../Images/pipelines.png)
 
 Amazon Fea. St.:
 
-![](../feast.png)
+![](../Images/feast.png)
 
 Amazon MLflow:
 
-![](../mlflow.png)
+![](../Images/mlflow.png)
 
 Assumptions stated in the images.
 

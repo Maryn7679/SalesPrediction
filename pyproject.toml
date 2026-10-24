@@ -1,0 +1,4 @@
+[project]
+dependencies = [
+  "apache-airflow[celery]==3.0.0"
+]
