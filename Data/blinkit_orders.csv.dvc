@@ -1,0 +1,5 @@
+outs:
+- md5: c88c5562f47efa5e4d80af3485cfd364
+  size: 91450
+  hash: md5
+  path: blinkit_orders.csv
