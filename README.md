@@ -6,6 +6,10 @@ previous sales for the next week.
 New sales data is added daily and the model is continuously evaluated on its performance and
 improved over time.
 
+Run:
+
+`docker-compose up -d`
+
 | Property                                   | Evidence a reviewer checks                                                             | Added in |
 |--------------------------------------------|----------------------------------------------------------------------------------------|----------|
 | Repository reproducible from a clean clone | CI is green; make setup and make lint succeed on a fresh clone                         | Lab 1    |

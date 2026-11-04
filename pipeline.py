@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 import datetime as dt
-from airflow.providers.standard.operators.bash import BashOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.sdk import DAG, task
 
