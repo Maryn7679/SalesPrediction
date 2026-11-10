@@ -1,6 +1,0 @@
-outs:
-- md5: a6937d9c973ef7ae2b835e76f33043b2.dir
-  size: 91878
-  nfiles: 1
-  hash: md5
-  path: blinkit_orders_2.csv

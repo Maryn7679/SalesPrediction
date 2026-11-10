@@ -17,4 +17,9 @@ services:
     container_name: airflow
     ports:
       - "8080:8080"
-    command: webserver
+    environment:
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: True
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./minio/data/files:/opt/airflow/data_files
+    command: api-server

@@ -9,6 +9,19 @@ improved over time.
 Run:
 
 `docker-compose up -d`
+```commandline
+docker exec -it airflow /bin/bash
+airflow db migrate
+airflow dag-processor
+airflow scheduler
+```
+```commandline
+docker exec -it minio /bin/bash
+mc alias set local http://localhost:9000 admin password123
+mc cp local/order-data/blinkit_orders_2.csv data/files
+```
+db migrate must be run immediately after opening shell
+before the container shuts down.
 
 | Property                                   | Evidence a reviewer checks                                                             | Added in |
 |--------------------------------------------|----------------------------------------------------------------------------------------|----------|
