@@ -2,33 +2,41 @@ import os
 import pandas as pd
 import datetime as dt
 from airflow.providers.standard.operators.python import PythonOperator
-from airflow.sdk import DAG, task
+from airflow.sdk import DAG
 
 
-def extract():
+def extract(**context):
     os.system('dvc pull')
 
-    pd.read_csv("./data_files/blinkit_orders_2.csv", sep=';', header=0)
+    file = context["params"]["filename"]
+    data = pd.read_csv(f"./data_files/{file}.csv", sep=';', header=0)
+    data.to_csv(f"./data_files/temp/{file}.csv", sep=';')
 
     return "Data pulled"
 
 
-def validate(
-        # params
-):
-    data = pd.read_csv("./data_files/blinkit_orders_2.csv", sep=';', header=0)
+def validate(**context):
+    file = context["params"]["filename"]
+    start = context["params"]["start_time"]
+    end = context["params"]["end_time"]
+
+    start_time = dt.datetime.strptime(start, '%Y.%m.%d %H:%M')
+    end_time = dt.datetime.strptime(end, '%Y.%m.%d %H:%M')
+
+    data = pd.read_csv(f"./data_files/temp/{file}.csv", sep=';', header=0)
 
     if not {'order_id', 'customer_id', 'order_date', 'promised_delivery_time',
             'actual_delivery_time', 'delivery_status', 'order_total', 'payment_method',
             'delivery_partner_id', 'store_id'}.issubset(data.columns):
         raise Exception(f"Data is missing required columns. Data example: {data.iloc[1]}")
-    # if params.start_time > params.end_time:
-    #     raise Exception("Incorrect input parameters")
+    if start_time > end_time:
+        raise Exception("Incorrect input parameters")
     return "Data format validated"
 
 
-def quality_check():
-    data = pd.read_csv("./data_files/blinkit_orders_2.csv", sep=';', header=0)
+def quality_check(**context):
+    file = context["params"]["filename"]
+    data = pd.read_csv(f"./data_files/temp/{file}.csv", sep=';', header=0)
 
     if data.isnull().values.any():
         raise Exception("Data contains null values")
@@ -36,68 +44,75 @@ def quality_check():
     return "Data quality checked"
 
 
-def transform(
-        # params
-):
-    data = pd.read_csv("./data_files/blinkit_orders_2.csv", sep=';', header=0)
+def transform(**context):
+    file = context["params"]["filename"]
+    data = pd.read_csv(f"./data_files/temp/{file}.csv", sep=';', header=0)
+
+    start = context["params"]["start_time"]
+    end = context["params"]["end_time"]
+
+    start_time = dt.datetime.strptime(start, '%Y.%m.%d %H:%M')
+    end_time = dt.datetime.strptime(end, '%Y.%m.%d %H:%M')
 
     data = data[["order_id", "customer_id", "order_date", "order_total"]]
     data["order_date"] = pd.to_datetime(data["order_date"], format="%d.%m.%Y %H:%M")
-    # data = data[(data['order_date'] > params.start_time) & (data['order_date'] < params.end_time)]
+    data = data[(data['order_date'] > start_time) & (data['order_date'] < end_time)]
 
     return "Data transformed"
 
 
-def load():
-    data = pd.read_csv("./data_files/blinkit_orders_2.csv", sep=';', header=0)
+def load(**context):
+    file = context["params"]["filename"]
+    data = pd.read_csv(f"./data_files/temp/{file}.csv", sep=';', header=0)
+    return_string = "Data loaded"
 
-    old_data = pd.read_csv("Data/Features/blinkit_orders_features.csv", sep=';')
-    data = pd.merge(old_data, data, "outer", on="order_id")
+    try:
+        old_data = pd.read_csv(f"./data_files/features/{file}.csv", sep=';', header=0)
+        data = pd.merge(old_data, data, "outer", on="order_id")
+    except:
+        return_string = "Could not find old data. Overwriting."
 
-    data.to_csv("Data/Features/blinkit_orders_features.csv", sep=';')
+    data.to_csv(f"./data_files/features/{file}.csv", sep=';')
 
-    return "Data loaded"
+    return return_string
 
 
 with DAG(
     "pipeline",
-    # params = {
-    #     "start_time": dt.datetime(2023, 3, 16, 0, 0),
-    #     "end_time": dt.datetime(2023, 6, 30, 23, 59),
-    #     },
+    params = {
+            "filename": "blinkit_orders_2",
+            "start_time": "2023.03.16 00:00",
+            "end_time": "2023.06.30 23:59",
+        },
 ) as dag:
     extract = PythonOperator(
         task_id="extract",
-        python_callable=extract
+        python_callable=extract,
     )
     validate = PythonOperator(
         task_id="validate",
         python_callable=validate,
-        # params={"start_time", "end_time"}
     )
     transform = PythonOperator(
         task_id="transform",
         python_callable=transform,
-        # params={"start_time", "end_time"}
     )
     load = PythonOperator(
         task_id="load",
-        python_callable=load
+        python_callable=load,
     )
     quality_check = PythonOperator(
         task_id="quality_check",
-        python_callable=quality_check
+        python_callable=quality_check,
     )
 
     extract >> [validate, quality_check] >> transform >> load
-    # extract.set_downstream([validate, quality_check])
-    # transform.set_upstream([validate, quality_check])
-    # transform.set_downstream(load)
 
 if __name__ == "__main__":
     dag.test(
-     # run_conf={
-     #    "start_time": dt.datetime(2023, 3, 16, 0, 0),
-     #    "end_time": dt.datetime(2023, 6, 30, 23, 59),
-     #    },
+        run_conf={
+            "filename": "blinkit_orders_2",
+            "start_time": "2023.03.16 00:00",
+            "end_time": "2023.06.30 23:59",
+            },
     )
