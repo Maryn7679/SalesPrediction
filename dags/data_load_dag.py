@@ -6,11 +6,9 @@ from airflow.sdk import DAG
 
 
 def extract(**context):
-    os.system('dvc pull')
-
     file = context["params"]["filename"]
     data = pd.read_csv(f"./data_files/{file}.csv", sep=';', header=0)
-    data.to_csv(f"./data_files/temp/{file}.csv", sep=';')
+    data.to_csv(f"./data_files/temp/{file}.csv", sep=';', index=False)
 
     return "Data pulled"
 
@@ -29,7 +27,7 @@ def validate(**context):
             'actual_delivery_time', 'delivery_status', 'order_total', 'payment_method',
             'delivery_partner_id', 'store_id'}.issubset(data.columns):
         raise Exception(f"Data is missing required columns. Data example: {data.iloc[1]}")
-    if start_time > end_time:
+    if start_time >= end_time:
         raise Exception("Incorrect input parameters")
     return "Data format validated"
 
@@ -56,7 +54,9 @@ def transform(**context):
 
     data = data[["order_id", "customer_id", "order_date", "order_total"]]
     data["order_date"] = pd.to_datetime(data["order_date"], format="%d.%m.%Y %H:%M")
-    data = data[(data['order_date'] > start_time) & (data['order_date'] < end_time)]
+    data = data[(data['order_date'] > start_time) and (data['order_date'] < end_time)]
+
+    data.to_csv(f"./data_files/temp/{file}.csv", sep=';', index=False)
 
     return "Data transformed"
 
@@ -66,19 +66,21 @@ def load(**context):
     data = pd.read_csv(f"./data_files/temp/{file}.csv", sep=';', header=0)
     return_string = "Data loaded"
 
-    try:
-        old_data = pd.read_csv(f"./data_files/features/{file}.csv", sep=';', header=0)
-        data = pd.merge(old_data, data, "outer", on="order_id")
-    except:
-        return_string = "Could not find old data. Overwriting."
+    data["order_date"] = data["order_date"].astype("datetime64[ns]")
+    totals = data.groupby([data["order_date"].dt.date])['order_total'].sum()
+    counts = data.groupby([data["order_date"].dt.date])['order_total'].count()
+    data2 = pd.DataFrame(data={"date": data["order_date"],
+                               "order_count": counts,
+                               "orders_total": totals})
+    data2.to_csv(f"./data_files/features/{file}_grouped.csv", sep=';', index=False)
 
-    data.to_csv(f"./data_files/features/{file}.csv", sep=';')
+    data.to_csv(f"./data_files/features/{file}.csv", sep=';', index=False)
 
     return return_string
 
 
 with DAG(
-    "pipeline",
+    "data_load",
     params = {
             "filename": "blinkit_orders_2",
             "start_time": "2023.03.16 00:00",
@@ -109,10 +111,4 @@ with DAG(
     extract >> [validate, quality_check] >> transform >> load
 
 if __name__ == "__main__":
-    dag.test(
-        run_conf={
-            "filename": "blinkit_orders_2",
-            "start_time": "2023.03.16 00:00",
-            "end_time": "2023.06.30 23:59",
-            },
-    )
+    dag.test()
